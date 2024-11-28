@@ -33,6 +33,13 @@ class DkpManager:
     def add_weekly(self, user_id, amount):
         self._set_by_id(user_id, amount, weekly=True)
 
+    def compute_end_of_week(self, reputation):
+        for dkp in self.dkp_cache:
+            dkp[DKP_CACHE_WEEKLY_KEY] += reputation.get(dkp["id"], 0)
+            dkp[DKP_CACHE_DKP_KEY] += dkp[DKP_CACHE_WEEKLY_KEY] if dkp[DKP_CACHE_WEEKLY_KEY] <= 60 else 60
+            dkp[DKP_CACHE_WEEKLY_KEY] = 0
+
+
     def _set_by_id(self, user_id, dkp, weekly: bool):
         if self.find_by_id(user_id) is None:
             self.dkp_cache.append(

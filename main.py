@@ -1,20 +1,19 @@
 import discord
+from discord.ext.commands import has_role
 from discord.ui import Button, View
 import logging
 
 from DkpManager import DkpManager
 
-DKP_MANAGER_ROLE_ID = 501096888502583297
-PVP_CHANNEL_ID = 1290095676679655476
-PVE_CHANNEL_ID = 1289970145002913802
-
-TEST_CHANNEL_ID = 481765834797350912
+DKP_MANAGER_ROLE_ID = 1307003061369045032
+PVP_CHANNEL_ID = 1289970145002913802
+PVE_CHANNEL_ID = 1290095676679655476
 
 logger = logging.getLogger("FuryaBot")
 logging.basicConfig(format='%(asctime)s %(message)s', filename='bot.log', level=logging.INFO)
 
 dkp_rewards = (
-    ("PVE Gildenbosse", 5, TEST_CHANNEL_ID, True), ("Boonstone Kampf", 10, PVP_CHANNEL_ID, True),
+    ("PVE Gildenbosse", 5, PVE_CHANNEL_ID, True), ("Boonstone Kampf", 10, PVP_CHANNEL_ID, True),
     ("Allianz PVP", 5, PVP_CHANNEL_ID, True),
     ("Steuertransport", 10, PVP_CHANNEL_ID, False), ("Castle Siege", 30, PVP_CHANNEL_ID, False))
 
@@ -43,23 +42,36 @@ async def on_ready():
 @bot.command(name="mydkp")
 async def dkp(ctx):
     await _get_dkp(ctx, ctx.author)
-    pass
+
+@bot.command(name="weekly")
+@has_role(DKP_MANAGER_ROLE_ID)
+async def weekly(ctx, args):
+    arg_list = args.split()
+    logger.info(f"{ctx.author.display_name}:{ctx.author.id} hat /weekly benutzt mit: {args}")
+    if len(arg_list) % 2 != 0 or len(arg_list) < 2:
+        await ctx.respond("Value Error: Die Liste muss gleich viele IDs wie Reputation enthalten, damit jeder ID ein Reputation wert zugewiesen werden kann.")
+    else:
+        reputation_dict = {arg_list[i]: (int(arg_list[i + 1]))/1000 for i in range(0, len(arg_list), 2)}
+        manager.compute_end_of_week(reputation_dict)
+        manager.export_dkp()
+        await ctx.respond("Die wöchtentlichen Dkp wurden erfolgreich übernommen.")
 
 
 @bot.command(name="dkp")
 async def dkp(ctx, user: discord.Member):
     await _get_dkp(ctx, user)
-    pass
 
 
 @bot.command(name="pay")
+@has_role(DKP_MANAGER_ROLE_ID)
 async def pay(ctx, user: discord.Member, dkp: int):
-    await _decrease_dkp(user, dkp)
+    await _decrease_dkp(user.id, dkp)
     await ctx.respond(f"{user.display_name} hat {dkp} DKP bezahlt")
     logger.info(f"{user.display_name} hat {dkp} DKP bezahlt: by {ctx.author}")
 
 
 @bot.command(name="adddkp")
+@has_role(DKP_MANAGER_ROLE_ID)
 async def adddkp(ctx, user: discord.Member, dkp: int, weekly: bool):
     await _add_dkp([user.id], dkp, weekly=weekly)
     _weekly = " weekly" if weekly else ""
@@ -68,6 +80,7 @@ async def adddkp(ctx, user: discord.Member, dkp: int, weekly: bool):
 
 
 @bot.command(name="managedkp")
+@has_role(DKP_MANAGER_ROLE_ID)
 async def manage_dkp(ctx):
     if _verify_manager_role(ctx.author):
         await _send_management_msg(ctx)
