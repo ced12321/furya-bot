@@ -101,7 +101,7 @@ async def _get_dkp(ctx, user):
 async def _add_dkp(user_ids, amount, weekly: bool):
     manager.import_data_if_empty()
     for user_id in user_ids:
-        manager.add_weekly(user_id, amount) if weekly else manager.add_dkp(amount, user_id)
+        manager.add_weekly(user_id, amount) if weekly else manager.add_dkp(user_id, amount)
     manager.export_dkp()
 
 
