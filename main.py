@@ -10,7 +10,7 @@ PVP_CHANNEL_ID = 1289970145002913802
 PVE_CHANNEL_ID = 1290095676679655476
 
 logger = logging.getLogger("FuryaBot")
-logging.basicConfig(format='%(asctime)s %(message)s', filename='bot.log', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s %(message)s', filename='bot.log', level=logging.WARNING)
 
 dkp_rewards = (
     ("PVE Gildenbosse", 5, PVE_CHANNEL_ID, True), ("Boonstone Kampf", 10, PVP_CHANNEL_ID, True),
@@ -47,7 +47,7 @@ async def dkp(ctx):
 @has_role(DKP_MANAGER_ROLE_ID)
 async def weekly(ctx, args):
     arg_list = args.split()
-    logger.info(f"{ctx.author.display_name}:{ctx.author.id} hat /weekly benutzt mit: {args}")
+    logger.warning(f"{ctx.author.display_name}:{ctx.author.id} hat /weekly benutzt mit: {args}")
     if len(arg_list) % 2 != 0 or len(arg_list) < 2:
         await ctx.respond("Value Error: Die Liste muss gleich viele IDs wie Reputation enthalten, damit jeder ID ein Reputation wert zugewiesen werden kann.")
     else:
@@ -67,7 +67,7 @@ async def dkp(ctx, user: discord.Member):
 async def pay(ctx, user: discord.Member, dkp: int):
     await _decrease_dkp(user.id, dkp)
     await ctx.respond(f"{user.display_name} hat {dkp} DKP bezahlt")
-    logger.info(f"{user.display_name} hat {dkp} DKP bezahlt: by {ctx.author}")
+    logger.warning(f"{user.display_name} hat {dkp} DKP bezahlt: by {ctx.author}")
 
 
 @bot.command(name="adddkp")
@@ -76,7 +76,7 @@ async def adddkp(ctx, user: discord.Member, dkp: int, weekly: bool):
     await _add_dkp([user.id], dkp, weekly=weekly)
     _weekly = " weekly" if weekly else ""
     await ctx.respond(f"{user.display_name} hat {dkp} {_weekly} DKP erhalten")
-    logger.info(f"{user.display_name} hat {dkp} {_weekly} DKP erhalten: by {ctx.author}")
+    logger.warning(f"{user.display_name} hat {dkp} {_weekly} DKP erhalten: by {ctx.author}")
 
 
 @bot.command(name="managedkp")
@@ -156,7 +156,7 @@ async def _send_management_msg(ctx):
         await interaction.response.send_message(
             f"Du hast das Event '{dkp_rewards[int(interaction.custom_id)][0]}' gewählt!",
             ephemeral=True)
-        logger.info(f"{interaction.user.display_name}:{interaction.user.id} hat das Event {dkp_rewards[int(interaction.custom_id)][0]} aktiviert")
+        logger.warning(f"{interaction.user.display_name}:{interaction.user.id} hat das Event {dkp_rewards[int(interaction.custom_id)][0]} aktiviert")
 
     for button in [button1, button2, button3, button4, button5]:
         button.callback = button_callback
