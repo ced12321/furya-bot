@@ -51,7 +51,7 @@ async def weekly(ctx, args):
     if len(arg_list) % 2 != 0 or len(arg_list) < 2:
         await ctx.respond("Value Error: Die Liste muss gleich viele IDs wie Reputation enthalten, damit jeder ID ein Reputation wert zugewiesen werden kann.")
     else:
-        reputation_dict = {arg_list[i]: (int(arg_list[i + 1]/1000)) for i in range(0, len(arg_list), 2)}
+        reputation_dict = {arg_list[i]: (int(round(arg_list[i + 1]/1000))) for i in range(0, len(arg_list), 2)}
         manager.compute_end_of_week(reputation_dict)
         manager.export_dkp()
         await ctx.respond("Die wöchtentlichen Dkp wurden erfolgreich übernommen.")

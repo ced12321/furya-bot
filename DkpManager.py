@@ -37,6 +37,7 @@ class DkpManager:
         for dkp in self.dkp_cache:
             dkp[DKP_CACHE_WEEKLY_KEY] += reputation.get(dkp["id"], 0)
             dkp[DKP_CACHE_DKP_KEY] += dkp[DKP_CACHE_WEEKLY_KEY] if dkp[DKP_CACHE_WEEKLY_KEY] <= 60 else 60
+            dkp[DKP_CACHE_DKP_KEY] = int(dkp[DKP_CACHE_DKP_KEY])
             dkp[DKP_CACHE_WEEKLY_KEY] = 0
 
 
