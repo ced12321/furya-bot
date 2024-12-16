@@ -40,11 +40,11 @@ class DkpManager:
             dkp[DKP_CACHE_DKP_KEY] = int(dkp[DKP_CACHE_DKP_KEY])
             dkp[DKP_CACHE_WEEKLY_KEY] = 0
 
-
     def _set_by_id(self, user_id, dkp, weekly: bool):
         if self.find_by_id(user_id) is None:
             self.dkp_cache.append(
-                {"id": str(user_id), DKP_CACHE_WEEKLY_KEY: dkp, DKP_CACHE_DKP_KEY: 0}) if weekly else self.dkp_cache.append(
+                {"id": str(user_id), DKP_CACHE_WEEKLY_KEY: dkp,
+                 DKP_CACHE_DKP_KEY: 0}) if weekly else self.dkp_cache.append(
                 {"id": str(user_id), DKP_CACHE_WEEKLY_KEY: 0, DKP_CACHE_DKP_KEY: dkp})
         else:
             entry_key = DKP_CACHE_WEEKLY_KEY if weekly else DKP_CACHE_DKP_KEY

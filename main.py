@@ -43,15 +43,17 @@ async def on_ready():
 async def dkp(ctx):
     await _get_dkp(ctx, ctx.author)
 
+
 @bot.command(name="weekly")
 @has_role(DKP_MANAGER_ROLE_ID)
 async def weekly(ctx, args):
     arg_list = args.split()
     logger.warning(f"{ctx.author.display_name}:{ctx.author.id} hat /weekly benutzt mit: {args}")
     if len(arg_list) % 2 != 0 or len(arg_list) < 2:
-        await ctx.respond("Value Error: Die Liste muss gleich viele IDs wie Reputation enthalten, damit jeder ID ein Reputation wert zugewiesen werden kann.")
+        await ctx.respond(
+            "Value Error: Die Liste muss gleich viele IDs wie Reputation enthalten, damit jeder ID ein Reputation wert zugewiesen werden kann.")
     else:
-        reputation_dict = {arg_list[i]: (int(round(arg_list[i + 1]/1000))) for i in range(0, len(arg_list), 2)}
+        reputation_dict = {arg_list[i]: (round((int(arg_list[i + 1])) / 1000)) for i in range(0, len(arg_list), 2)}
         manager.compute_end_of_week(reputation_dict)
         manager.export_dkp()
         await ctx.respond("Die wöchtentlichen Dkp wurden erfolgreich übernommen.")
@@ -156,7 +158,8 @@ async def _send_management_msg(ctx):
         await interaction.response.send_message(
             f"Du hast das Event '{dkp_rewards[int(interaction.custom_id)][0]}' gewählt!",
             ephemeral=True)
-        logger.warning(f"{interaction.user.display_name}:{interaction.user.id} hat das Event {dkp_rewards[int(interaction.custom_id)][0]} aktiviert")
+        logger.warning(
+            f"{interaction.user.display_name}:{interaction.user.id} hat das Event {dkp_rewards[int(interaction.custom_id)][0]} aktiviert")
 
     for button in [button1, button2, button3, button4, button5]:
         button.callback = button_callback
