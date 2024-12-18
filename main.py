@@ -134,6 +134,31 @@ async def _get_member_of_channel(ctx, channel_id):
         await ctx.respond("Der Sprachkanal ist derzeit leer.")
     return members_in_channel
 
+async def get_members_from_two_channels(client, server1_id, channel1_id, server2_id, channel2_id):
+    server1 = client.get_guild(server1_id)
+    server2 = client.get_guild(server2_id)
+
+    if not server1 or not server2:
+        logger.error(f"Server konnte nicht gefunden werden. Server 1: {server1_id}, Server 2: {server2_id}")
+
+    members_channel1 = await _get_members_of_channel(server1, channel1_id)
+    members_channel2 = await _get_members_of_channel(server2, channel2_id)
+
+    return members_channel1, members_channel2
+
+
+async def _get_members_of_channel(guild, channel_id):
+    voice_channel = guild.get_channel(channel_id)
+
+    # Überprüfen, ob der Kanal existiert und ob es ein Sprachkanal ist
+    if not voice_channel or not isinstance(voice_channel, discord.VoiceChannel):
+        logger.error(f"Channel: {channel_id} in Server: {guild} nicht gefunden oder Channel ist kein Voice Channel!")
+
+    # Alle Benutzer im Sprachkanal abrufen
+    members_in_channel = [member.id for member in voice_channel.members]
+
+    return members_in_channel
+
 
 async def _send_management_msg(ctx):
     # Erstelle die Embed-Nachricht
