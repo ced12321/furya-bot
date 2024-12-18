@@ -8,6 +8,7 @@ from DkpManager import DkpManager
 DKP_MANAGER_ROLE_ID = 1307003061369045032
 PVP_CHANNEL_ID = 1289970145002913802
 PVE_CHANNEL_ID = 1290095676679655476
+BOT_CHANNEL_ID = 1280588930382565499
 
 logger = logging.getLogger("FuryaBot")
 logging.basicConfig(format='%(asctime)s %(message)s', filename='bot.log', level=logging.WARNING)
@@ -40,6 +41,7 @@ async def on_ready():
 
 
 @bot.command(name="mydkp")
+@bot.check(lambda ctx: ctx.channel.id == BOT_CHANNEL_ID)
 async def dkp(ctx):
     await _get_dkp(ctx, ctx.author)
 
@@ -60,6 +62,7 @@ async def weekly(ctx, args):
 
 
 @bot.command(name="dkp")
+@bot.check(lambda ctx: ctx.channel.id == BOT_CHANNEL_ID)
 async def dkp(ctx, user: discord.Member):
     await _get_dkp(ctx, user)
 
