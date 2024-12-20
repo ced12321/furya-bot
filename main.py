@@ -6,9 +6,18 @@ import logging
 from DkpManager import DkpManager
 
 DKP_MANAGER_ROLE_ID = 1307003061369045032
+TL_MEMBER_ROLE_ID = 638795102361354260
+
 PVP_CHANNEL_ID = 1289970145002913802
 PVE_CHANNEL_ID = 1290095676679655476
+ALLI_EVENT_CHANNEL_ID = 1297258410013622468
+
 BOT_CHANNEL_ID = 1280588930382565499
+
+FURYA_GUILD_ID = 395072012181045260
+ALLI_GUILD_ID = 1293833552097579152
+
+GUILD_NAME_PREFIX = "[Polaris]"
 
 logger = logging.getLogger("FuryaBot")
 logging.basicConfig(format='%(asctime)s %(message)s', filename='bot.log', level=logging.WARNING)
@@ -40,8 +49,9 @@ async def on_ready():
     logger.log(logging.INFO, f"Logged in as {bot.user}")
 
 
+# @bot.check(lambda ctx: ctx.channel.id == BOT_CHANNEL_ID)
 @bot.command(name="mydkp")
-@bot.check(lambda ctx: ctx.channel.id == BOT_CHANNEL_ID)
+@has_role(TL_MEMBER_ROLE_ID)
 async def dkp(ctx):
     await _get_dkp(ctx, ctx.author)
 
@@ -61,8 +71,9 @@ async def weekly(ctx, args):
         await ctx.respond("Die wöchtentlichen Dkp wurden erfolgreich übernommen.")
 
 
+# @bot.check(lambda ctx: ctx.channel.id == BOT_CHANNEL_ID)
 @bot.command(name="dkp")
-@bot.check(lambda ctx: ctx.channel.id == BOT_CHANNEL_ID)
+@has_role(TL_MEMBER_ROLE_ID)
 async def dkp(ctx, user: discord.Member):
     await _get_dkp(ctx, user)
 
@@ -91,6 +102,15 @@ async def manage_dkp(ctx):
         await _send_management_msg(ctx)
     else:
         await ctx.respond(f"Du hast keine Berechtigung diesen Befehl zu benutzen")
+
+
+@bot.command(name="list")
+@has_role(DKP_MANAGER_ROLE_ID)
+async def list_member(ctx):
+    members1 = await get_members_from_two_channels()
+    members2 = await _get_member_of_channel(ctx, PVP_CHANNEL_ID)
+    msg = f"Member beide {list(dict.fromkeys(members1))} \n Member furya {members2}"
+    await ctx.respond(msg)
 
 
 async def _get_dkp(ctx, user):
@@ -134,20 +154,23 @@ async def _get_member_of_channel(ctx, channel_id):
         await ctx.respond("Der Sprachkanal ist derzeit leer.")
     return members_in_channel
 
-async def get_members_from_two_channels(client, server1_id, channel1_id, server2_id, channel2_id):
-    server1 = client.get_guild(server1_id)
-    server2 = client.get_guild(server2_id)
 
-    if not server1 or not server2:
-        logger.error(f"Server konnte nicht gefunden werden. Server 1: {server1_id}, Server 2: {server2_id}")
+async def get_members_from_two_channels():
+    furya_server = bot.get_guild(FURYA_GUILD_ID)
+    alli_server = bot.get_guild(ALLI_GUILD_ID)
 
-    members_channel1 = await _get_members_of_channel(server1, channel1_id)
-    members_channel2 = await _get_members_of_channel(server2, channel2_id)
+    if not furya_server or not alli_server:
+        logger.error(f"Server konnte nicht gefunden werden. Furya-Discord: {furya_server}, Alli-Discord: {alli_server}")
 
-    return members_channel1, members_channel2
+    members_furya = await _get_members_of_channel(furya_server, PVP_CHANNEL_ID, lambda name: True)
+    members_alli = await _get_members_of_channel(alli_server, ALLI_EVENT_CHANNEL_ID,
+                                                 name_filter=lambda display_name: display_name.startswith(
+                                                     GUILD_NAME_PREFIX))
+
+    return members_alli + members_furya
 
 
-async def _get_members_of_channel(guild, channel_id):
+async def _get_members_of_channel(guild, channel_id, name_filter):
     voice_channel = guild.get_channel(channel_id)
 
     # Überprüfen, ob der Kanal existiert und ob es ein Sprachkanal ist
@@ -155,7 +178,10 @@ async def _get_members_of_channel(guild, channel_id):
         logger.error(f"Channel: {channel_id} in Server: {guild} nicht gefunden oder Channel ist kein Voice Channel!")
 
     # Alle Benutzer im Sprachkanal abrufen
-    members_in_channel = [member.id for member in voice_channel.members]
+    # if name_filter:
+    members_in_channel = [member.id for member in voice_channel.members if name_filter(member.display_name)]
+    # else:
+    #    members_in_channel = [member.id for member in voice_channel.members]
 
     return members_in_channel
 
@@ -180,7 +206,11 @@ async def _send_management_msg(ctx):
 
     async def button_callback(interaction: discord.Interaction):
         reward = dkp_rewards[int(interaction.custom_id)]
-        participants = await _get_member_of_channel(ctx, reward[2])
+
+        if int(interaction.custom_id) != 0:
+            participants = await get_members_from_two_channels()
+        else:
+            participants = await _get_member_of_channel(ctx, reward[2])
         await _add_dkp(participants, reward[1], reward[3])
 
         await interaction.response.send_message(
