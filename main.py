@@ -215,7 +215,7 @@ async def _send_management_msg(ctx):
 
         await interaction.response.send_message(
             f"Du hast das Event '{dkp_rewards[int(interaction.custom_id)][0]}' gewählt!",
-            ephemeral=True)
+            ephemeral=False)
         logger.warning(
             f"{interaction.user.display_name}:{interaction.user.id} hat das Event {dkp_rewards[int(interaction.custom_id)][0]} aktiviert")
 
