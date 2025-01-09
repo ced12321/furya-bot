@@ -17,7 +17,7 @@ BOT_CHANNEL_ID = 1280588930382565499
 FURYA_GUILD_ID = 395072012181045260
 ALLI_GUILD_ID = 1296531345203265647
 
-GUILD_NAME_PREFIX = "[Polaris]"
+GUILD_NAME_POSTFIX = "POLARIS"
 
 logger = logging.getLogger("FuryaBot")
 logging.basicConfig(format='%(asctime)s %(message)s', filename='bot.log', level=logging.WARNING)
@@ -164,8 +164,8 @@ async def get_members_from_two_channels():
 
     members_furya = await _get_members_of_channel(furya_server, PVP_CHANNEL_ID, lambda name: True)
     members_alli = await _get_members_of_channel(alli_server, ALLI_EVENT_CHANNEL_ID,
-                                                 name_filter=lambda display_name: display_name.startswith(
-                                                     GUILD_NAME_PREFIX))
+                                                 name_filter=lambda display_name: display_name.upper().endswith(
+                                                     GUILD_NAME_POSTFIX))
 
     return members_alli + members_furya
 
