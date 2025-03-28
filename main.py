@@ -4,28 +4,10 @@ from discord.ui import Button, View
 import logging
 
 from DkpManager import DkpManager
-
-DKP_MANAGER_ROLE_ID = 1307003061369045032
-TL_MEMBER_ROLE_ID = 638795102361354260
-
-PVP_CHANNEL_ID = 1289970145002913802
-PVE_CHANNEL_ID = 1290095676679655476
-ALLI_EVENT_CHANNEL_ID = 1297222312478904320
-
-BOT_CHANNEL_ID = 1280588930382565499
-
-FURYA_GUILD_ID = 395072012181045260
-ALLI_GUILD_ID = 1296531345203265647
-
-GUILD_NAME_POSTFIX = "POLARIS"
+from ConfManager import ConfigManager
 
 logger = logging.getLogger("FuryaBot")
 logging.basicConfig(format='%(asctime)s %(message)s', filename='bot.log', level=logging.WARNING)
-
-dkp_rewards = (
-    ("PVE Gildenbosse", 5, PVE_CHANNEL_ID, True), ("Boonstone Kampf", 10, PVP_CHANNEL_ID, True),
-    ("Allianz PVP", 5, PVP_CHANNEL_ID, True),
-    ("Steuertransport", 10, PVP_CHANNEL_ID, False), ("Castle Siege", 30, PVP_CHANNEL_ID, False))
 
 
 def get_token():
@@ -40,7 +22,8 @@ intents.voice_states = True
 intents.message_content = True
 intents.members = True  # Erforderlich, um Mitglieder im Voice-Channel zu sehen
 bot = discord.Bot(intents=intents)
-manager = DkpManager()
+dkp_manager = DkpManager()
+conf_manager = ConfigManager()
 
 
 # Bot-Event beim Start
@@ -51,13 +34,20 @@ async def on_ready():
 
 # @bot.check(lambda ctx: ctx.channel.id == BOT_CHANNEL_ID)
 @bot.command(name="mydkp")
-@has_role(TL_MEMBER_ROLE_ID)
+@has_role(conf_manager.config_cache.get("roles").get("member", 638795102361354260))
 async def dkp(ctx):
-    await _get_dkp(ctx, ctx.author)
+    dkp_manager.import_data_if_empty()
+    dkp_entry = dkp_manager.find_by_id(ctx.author.id)
+    if dkp_entry is None:
+        await ctx.respond(f"{ctx.author.display_name}: hat noch keine DKP!", ephemeral=True)
+    else:
+        await ctx.respond(
+            f"{ctx.author.display_name}: DKP insgesamt: {dkp_entry["dkp"]}, DKP weekly: {dkp_entry["weekly_dkp"]}",
+            ephemeral=True)
 
 
 @bot.command(name="weekly")
-@has_role(DKP_MANAGER_ROLE_ID)
+@has_role(conf_manager.config_cache.get("roles").get("manager", 1307003061369045032))
 async def weekly(ctx, args):
     arg_list = args.split()
     logger.warning(f"{ctx.author.display_name}:{ctx.author.id} hat /weekly benutzt mit: {args}")
@@ -66,20 +56,26 @@ async def weekly(ctx, args):
             "Value Error: Die Liste muss gleich viele IDs wie Reputation enthalten, damit jeder ID ein Reputation wert zugewiesen werden kann.")
     else:
         reputation_dict = {arg_list[i]: (round((int(arg_list[i + 1])) / 1000)) for i in range(0, len(arg_list), 2)}
-        manager.compute_end_of_week(reputation_dict)
-        manager.export_dkp()
+        dkp_manager.compute_end_of_week(reputation_dict)
+        dkp_manager.export_dkp()
         await ctx.respond("Die wöchtentlichen Dkp wurden erfolgreich übernommen.")
 
 
 # @bot.check(lambda ctx: ctx.channel.id == BOT_CHANNEL_ID)
 @bot.command(name="dkp")
-@has_role(TL_MEMBER_ROLE_ID)
+@has_role(conf_manager.config_cache.get("roles").get("manager", 1307003061369045032))
 async def dkp(ctx, user: discord.Member):
-    await _get_dkp(ctx, user)
+    dkp_manager.import_data_if_empty()
+    dkp_entry = dkp_manager.find_by_id(user.id)
+    if dkp_entry is None:
+        await ctx.respond(f"{user.display_name}: hat noch keine DKP!")
+    else:
+        await ctx.respond(
+            f"{user.display_name}: DKP insgesamt: {dkp_entry["dkp"]}, DKP weekly: {dkp_entry["weekly_dkp"]}")
 
 
 @bot.command(name="pay")
-@has_role(DKP_MANAGER_ROLE_ID)
+@has_role(conf_manager.config_cache.get("roles").get("manager", 1307003061369045032))
 async def pay(ctx, user: discord.Member, dkp: int):
     await _decrease_dkp(user.id, dkp)
     await ctx.respond(f"{user.display_name} hat {dkp} DKP bezahlt")
@@ -87,7 +83,7 @@ async def pay(ctx, user: discord.Member, dkp: int):
 
 
 @bot.command(name="adddkp")
-@has_role(DKP_MANAGER_ROLE_ID)
+@has_role(conf_manager.config_cache.get("roles").get("manager", 1307003061369045032))
 async def adddkp(ctx, user: discord.Member, dkp: int, weekly: bool):
     await _add_dkp([user.id], dkp, weekly=weekly)
     _weekly = " weekly" if weekly else ""
@@ -96,94 +92,77 @@ async def adddkp(ctx, user: discord.Member, dkp: int, weekly: bool):
 
 
 @bot.command(name="managedkp")
-@has_role(DKP_MANAGER_ROLE_ID)
+@has_role(conf_manager.config_cache.get("roles").get("manager", 1307003061369045032))
 async def manage_dkp(ctx):
-    if _verify_manager_role(ctx.author):
-        await _send_management_msg(ctx)
-    else:
-        await ctx.respond(f"Du hast keine Berechtigung diesen Befehl zu benutzen")
+    await _send_management_msg(ctx)
 
 
-@bot.command(name="list")
-@has_role(DKP_MANAGER_ROLE_ID)
-async def list_member(ctx):
-    members1 = await get_members_from_two_channels()
-    members2 = await _get_member_of_channel(ctx, PVP_CHANNEL_ID)
-    msg = f"Member beide {list(dict.fromkeys(members1))} \n Member furya {members2}"
-    await ctx.respond(msg)
+@bot.command(name="event")
+@has_role(conf_manager.config_cache.get("roles").get("manager", 1307003061369045032))
+async def event_dkp(ctx, server: int, channel, dkp: int, weekly: bool):
+    _server = bot.get_guild(server)
+    if not _server or not isinstance(_server, discord.Guild):
+        logger.error(f"Server id:{server} konnte nicht gefunden werden.")
+    _channel = _server.get_channel(channel)
+    if not _channel or not isinstance(_channel, discord.VoiceChannel):
+        logger.error(
+            f"Channel: {channel} in Server: {_server.id} nicht gefunden oder Channel ist kein Voice Channel!")
+
+    member = _channel.members
+    await _add_dkp(member, dkp, weekly=weekly)
+    channel_mention = f"<#{channel}>"
+    await ctx.respond(f"Mitglieder des Kanals {channel_mention} haben {dkp} {"weekly" if weekly else ""} DKP erhalten")
+    await log_members(ctx, member)
 
 
-async def _get_dkp(ctx, user):
-    manager.import_data_if_empty()
-    dkp_entry = manager.find_by_id(user.id)
-    if dkp_entry is None:
-        await ctx.respond(f"{user.display_name}: hat noch keine DKP!")
-    else:
-        await ctx.respond(
-            f"{user.display_name}: DKP insgesamt: {dkp_entry["dkp"]}, DKP weekly: {dkp_entry["weekly_dkp"]}")
+@bot.command(name="conf")
+@has_role(conf_manager.get("roles").get("manager", 1307003061369045032))
+async def get_dkp_conf(ctx):
+    embed = discord.Embed(title="DKP-Konfiguration",
+                          description="Dies ist die aktuelle Konfiguration des DKP-Bots",
+                          colour=0x329a39)
+
+    embed.set_author(name="Onke",
+                     icon_url="https://media.discordapp.net/attachments/939140952533123075/1015554166938161162/onke88-01_1.jpg?ex=67e66c05&is=67e51a85&hm=2dab96628d61601964e04b67853c2a7b45a159ebb9b3d3b5044811b88c004780")
+
+    for server in conf_manager.get("server"):
+        pve_channel_formatted = [f"<#{str(channel)}>" for channel in server.get("channel").get("pve")]
+        pvp_channel_formatted = [f"<#{str(channel)}>" for channel in server.get("channel").get("pvp")]
+        embed.add_field(name=f"Server {bot.get_guild(server).name}",
+                        value=f"Channel PVE:\n{pve_channel_formatted}\nChannel PVP\n{pvp_channel_formatted}",
+                        inline=False)
+    embed.set_footer(text="Alle Angaben wie immer ohne Gewähr",
+                     icon_url="https://slate.dan.onl/slate.png")
+
+    await ctx.send(embed=embed)
 
 
 async def _add_dkp(user_ids, amount, weekly: bool):
-    manager.import_data_if_empty()
+    dkp_manager.import_data_if_empty()
     for user_id in user_ids:
-        manager.add_weekly(user_id, amount) if weekly else manager.add_dkp(user_id, amount)
-    manager.export_dkp()
+        dkp_manager.add_weekly(user_id, amount) if weekly else dkp_manager.add_dkp(user_id, amount)
+    dkp_manager.export_dkp()
 
 
 async def _decrease_dkp(user_id, dkp):
-    manager.import_data_if_empty()
-    manager.add_dkp(user_id, abs(dkp) * -1)
-    manager.export_dkp()
+    dkp_manager.import_data_if_empty()
+    dkp_manager.add_dkp(user_id, abs(dkp) * -1)
+    dkp_manager.export_dkp()
 
 
-def _verify_manager_role(author):
-    return any(role.id == DKP_MANAGER_ROLE_ID for role in author.roles)
-
-
-async def _get_member_of_channel(ctx, channel_id):
-    voice_channel = ctx.guild.get_channel(int(channel_id))
-
-    # Überprüfen, ob der Kanal existiert und ob es ein Sprachkanal ist
-    if not voice_channel or not isinstance(voice_channel, discord.VoiceChannel):
-        await ctx.respond("Dieser Kanal ist kein gültiger Sprachkanal.")
-
-    # Alle Benutzer im Sprachkanal abrufen
-    members_in_channel = [member.id for member in voice_channel.members]
-
-    if not members_in_channel:
-        await ctx.respond("Der Sprachkanal ist derzeit leer.")
-    return members_in_channel
-
-
-async def get_members_from_two_channels():
-    furya_server = bot.get_guild(FURYA_GUILD_ID)
-    alli_server = bot.get_guild(ALLI_GUILD_ID)
-
-    if not furya_server or not alli_server:
-        logger.error(f"Server konnte nicht gefunden werden. Furya-Discord: {furya_server}, Alli-Discord: {alli_server}")
-
-    members_furya = await _get_members_of_channel(furya_server, PVP_CHANNEL_ID, lambda name: True)
-    members_alli = await _get_members_of_channel(alli_server, ALLI_EVENT_CHANNEL_ID,
-                                                 name_filter=lambda display_name: display_name.upper().endswith(
-                                                     GUILD_NAME_POSTFIX))
-
-    return members_alli + members_furya
-
-
-async def _get_members_of_channel(guild, channel_id, name_filter):
-    voice_channel = guild.get_channel(channel_id)
-
-    # Überprüfen, ob der Kanal existiert und ob es ein Sprachkanal ist
-    if not voice_channel or not isinstance(voice_channel, discord.VoiceChannel):
-        logger.error(f"Channel: {channel_id} in Server: {guild} nicht gefunden oder Channel ist kein Voice Channel!")
-
-    # Alle Benutzer im Sprachkanal abrufen
-    # if name_filter:
-    members_in_channel = [member.id for member in voice_channel.members if name_filter(member.display_name)]
-    # else:
-    #    members_in_channel = [member.id for member in voice_channel.members]
-
-    return members_in_channel
+async def get_member_of_channel(event_type):
+    participants = []
+    for server_obj in conf_manager.config_cache.get("server"):
+        for channel_id in server_obj.get("channel").get(event_type.lower()):
+            server = bot.get_guild(server_obj.get("id"))
+            if not server or not isinstance(server, discord.Guild):
+                logger.error(f"Server {server_obj.get("id")} konnte nicht gefunden werden.")
+            channel = server.get_channel(channel_id)
+            if not channel or not isinstance(channel, discord.VoiceChannel):
+                logger.error(
+                    f"Channel: {channel_id} in Server: {server_obj.get("id")} nicht gefunden oder Channel ist kein Voice Channel!")
+            participants.extend([member.id for member in channel.members])
+    return participants
 
 
 async def _send_management_msg(ctx):
@@ -194,30 +173,41 @@ async def _send_management_msg(ctx):
         color=discord.Color.blue()  # Farbe der Embed-Nachricht
     )
 
+    events = conf_manager.get("events")
     for i in range(5):
-        embed.add_field(name=dkp_rewards[i][0], value=f"{dkp_rewards[i][1]} DKP", inline=False)
+        embed.add_field(name=events[i].get("name"), value=f"{events[i].get("reward")} DKP", inline=False)
 
     # Erstelle die Buttons
-    button1 = Button(label=dkp_rewards[0][0], style=discord.ButtonStyle.primary, custom_id=str(0))  # Blau
-    button2 = Button(label=dkp_rewards[1][0], style=discord.ButtonStyle.danger, custom_id=str(1))  # Blau
-    button3 = Button(label=dkp_rewards[2][0], style=discord.ButtonStyle.danger, custom_id=str(2))  # Rot
-    button4 = Button(label=dkp_rewards[3][0], style=discord.ButtonStyle.danger, custom_id=str(3))  # Rot
-    button5 = Button(label=dkp_rewards[4][0], style=discord.ButtonStyle.success, custom_id=str(4))  # Grün
+    button1 = Button(label=events[0].get("name"), style=discord.ButtonStyle.primary,
+                     custom_id=str(events[0].get("id")))  # Blau
+    button2 = Button(label=events[1].get("name"), style=discord.ButtonStyle.danger,
+                     custom_id=str(events[1].get("id")))  # Blau
+    button3 = Button(label=events[2].get("name"), style=discord.ButtonStyle.danger,
+                     custom_id=str(events[2].get("id")))  # Rot
+    button4 = Button(label=events[3].get("name"), style=discord.ButtonStyle.danger,
+                     custom_id=str(events[3].get("id")))  # Rot
+    button5 = Button(label=events[4].get("name"), style=discord.ButtonStyle.success,
+                     custom_id=str(events[4].get("id")))  # Grün
 
     async def button_callback(interaction: discord.Interaction):
-        reward = dkp_rewards[int(interaction.custom_id)]
+        _events = conf_manager.get("events")
+        event = [event for event in _events if event.get("id") == int(interaction.custom_id)][0]
+        logger.warning(f"interactionId: {interaction.custom_id} event: {event}")
 
         if int(interaction.custom_id) != 0:
-            participants = await get_members_from_two_channels()
+            """PVP-EVENT"""
+            participants = await get_member_of_channel("PVP")
         else:
-            participants = await _get_member_of_channel(ctx, reward[2])
-        await _add_dkp(participants, reward[1], reward[3])
+            """PVE-EVENT"""
+            participants = await get_member_of_channel("PVE")
+        await _add_dkp(participants, event.get("reward"), event.get("weekly"))
 
         await interaction.response.send_message(
-            f"Du hast das Event '{dkp_rewards[int(interaction.custom_id)][0]}' gewählt!",
+            f"{interaction.user.mention} hat das Event '{event.get("name", "UNKNOWN EVENT")}' gewählt!",
             ephemeral=False)
         logger.warning(
-            f"{interaction.user.display_name}:{interaction.user.id} hat das Event {dkp_rewards[int(interaction.custom_id)][0]} aktiviert")
+            f"{interaction.user.display_name}:{interaction.user.id} hat das Event {event.get("name", "UNKNOWN EVENT")} aktiviert")
+        await log_members(interaction, participants)
 
     for button in [button1, button2, button3, button4, button5]:
         button.callback = button_callback
@@ -229,6 +219,12 @@ async def _send_management_msg(ctx):
 
     # Sende die Embed-Nachricht mit der View
     await ctx.respond(embed=embed, view=view)
+
+
+async def log_members(ctx, members):
+    msg = f"Folgende Member haben DKP erhalten: {[bot.get_user(member).mention for member in members]} | User IDs:{members}"
+    await ctx.followup.send(msg)
+    logger.warning(msg)
 
 
 bot.run(get_token())

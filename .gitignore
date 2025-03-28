@@ -3,3 +3,5 @@ token
 dkp.json
 bot.log
 __pycache__/
+config.json
+config-local.json
