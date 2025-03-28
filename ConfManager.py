@@ -44,19 +44,19 @@ class ConfigManager:
 
     def add_server(self, name, server_id):
         """Fügt einen Server hinzu."""
-        self.config_cache["servers"].append({"name": name, "id": server_id, "channel": {"pvp": [], "pve": []}})
+        self.config_cache["server"].append({"name": name, "id": server_id, "channel": {"pvp": [], "pve": []}})
         self.save_config()
 
     def delete_server(self, server_id):
         """Löscht einen Server aus der Konfiguration."""
-        self.config_cache["servers"] = [server for server in self.config_cache["servers"] if
+        self.config_cache["server"] = [server for server in self.config_cache["server"] if
                                         server["id"] != server_id]
         self.save_config()
 
     def add_channel(self, server_id, channel_id, is_pvp=True):
         """Fügt einen Channel zu einem bestimmten Server hinzu."""
         channel_type = "pvp" if is_pvp else "pve"
-        for server in self.config_cache["servers"]:
+        for server in self.config_cache["server"]:
             if server["id"] == server_id:
                 if channel_id not in server["channel"][channel_type]:
                     server["channel"][channel_type].append(channel_id)
@@ -66,7 +66,7 @@ class ConfigManager:
     def delete_channel(self, server_id, channel_id, is_pvp=True):
         """Löscht einen Channel aus einem bestimmten Server."""
         channel_type = "pvp" if is_pvp else "pve"
-        for server in self.config_cache["servers"]:
+        for server in self.config_cache["server"]:
             if server["id"] == server_id:
                 if channel_id in server["channel"][channel_type]:
                     server["channel"][channel_type].remove(channel_id)
