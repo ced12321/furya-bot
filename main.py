@@ -139,7 +139,7 @@ async def get_dkp_conf(ctx):
 
 @bot.command(name="addserver")
 @has_role(conf_manager.get("roles").get("manager", 1307003061369045032))
-async def add_server(ctx, server_id: int, name):
+async def add_server(ctx, server_id, name: str):
     conf_manager.add_server(server_id, name)
     await ctx.respond(
         f"Server {name} ID: {server_id} wurde registriert. \nBitte ladet den Bot auf den Server ein:\nhttps://discord.com/oauth2/authorize?client_id=1343690892451778671")
@@ -147,21 +147,21 @@ async def add_server(ctx, server_id: int, name):
 
 @bot.command(name="removeserver")
 @has_role(conf_manager.get("roles").get("manager", 1307003061369045032))
-async def remove_server(ctx, server_id: int):
+async def remove_server(ctx, server_id):
     conf_manager.delete_server(server_id)
     await ctx.respond(f"Server mit id {server_id} wird entfernt!")
 
 
 @bot.command(name="addchannel")
 @has_role(conf_manager.get("roles").get("manager", 1307003061369045032))
-async def add_channel(ctx, server: int, channel_id: int, pvp: bool):
+async def add_channel(ctx, server, channel_id, pvp: bool):
     conf_manager.add_channel(server, channel_id, pvp)
     await ctx.respond(f"Channel <#{channel_id}> wurde registriert.")
 
 
 @bot.command(name="removechannel")
 @has_role(conf_manager.get("roles").get("manager", 1307003061369045032))
-async def remove_channel(ctx, server: int, channel_id: int):
+async def remove_channel(ctx, server, channel_id):
     conf_manager.delete_channel(server, channel_id)
     await ctx.respond(f"Channel <#{channel_id}> wurde entfernt!")
 
