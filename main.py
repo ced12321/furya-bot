@@ -128,13 +128,42 @@ async def get_dkp_conf(ctx):
     for server in conf_manager.get("server"):
         pve_channel_formatted = [f"<#{str(channel)}>" for channel in server.get("channel").get("pve")]
         pvp_channel_formatted = [f"<#{str(channel)}>" for channel in server.get("channel").get("pvp")]
-        embed.add_field(name=f"Server {bot.get_guild(server).name}",
+        embed.add_field(name=f"Server: {server.get('name')}",
                         value=f"Channel PVE:\n{pve_channel_formatted}\nChannel PVP\n{pvp_channel_formatted}",
                         inline=False)
     embed.set_footer(text="Alle Angaben wie immer ohne Gewähr",
                      icon_url="https://slate.dan.onl/slate.png")
 
-    await ctx.send(embed=embed)
+    await ctx.respond(embed=embed)
+
+
+@bot.command(name="addServer")
+@has_role(conf_manager.get("roles").get("manager", 1307003061369045032))
+async def add_server(ctx, server_id: int, name):
+    conf_manager.add_server(server_id, name)
+    await ctx.respond(
+        f"Server {name} ID: {server_id} wurde registriert. \nBitte ladet den Bot auf den Server ein:\nhttps://discord.com/oauth2/authorize?client_id=1343690892451778671")
+
+
+@bot.command(name="removeServer")
+@has_role(conf_manager.get("roles").get("manager", 1307003061369045032))
+async def remove_server(ctx, server_id: int):
+    conf_manager.delete_server(server_id)
+    await ctx.respond(f"Server mit id {server_id} wird entfernt!")
+
+
+@bot.command(name="addChannel")
+@has_role(conf_manager.get("roles").get("manager", 1307003061369045032))
+async def add_channel(ctx, server: int, channel_id: int, pvp: bool):
+    conf_manager.add_channel(server, channel_id, pvp)
+    await ctx.respond(f"Channel <#{channel_id}> wurde registriert.")
+
+
+@bot.command(name="removeChannel")
+@has_role(conf_manager.get("roles").get("manager", 1307003061369045032))
+async def remove_channel(ctx, server: int, channel_id: int):
+    conf_manager.delete_channel(server, channel_id)
+    await ctx.respond(f"Channel <#{channel_id}> wurde entfernt!")
 
 
 async def _add_dkp(user_ids, amount, weekly: bool):

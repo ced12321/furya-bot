@@ -42,30 +42,56 @@ class ConfigManager:
         """Gibt den Wert eines Konfigurationsschlüssels zurück oder den Standardwert."""
         return self.config_cache.get(key, default)
 
-    def set(self, key, value):
-        """Setzt einen Wert in der Konfiguration und speichert ihn direkt."""
-        self.config_cache[key] = value
+    def add_server(self, name, server_id):
+        """Fügt einen Server hinzu."""
+        self.config_cache["servers"].append({"name": name, "id": server_id, "channel": {"pvp": [], "pve": []}})
         self.save_config()
 
-    def delete(self, key):
-        """Löscht einen Schlüssel aus der Konfiguration und speichert die Änderung."""
-        if key in self.config_cache:
-            del self.config_cache[key]
-            self.save_config()
+    def delete_server(self, server_id):
+        """Löscht einen Server aus der Konfiguration."""
+        self.config_cache["servers"] = [server for server in self.config_cache["servers"] if
+                                        server["id"] != server_id]
+        self.save_config()
+
+    def add_channel(self, server_id, channel_id, is_pvp=True):
+        """Fügt einen Channel zu einem bestimmten Server hinzu."""
+        channel_type = "pvp" if is_pvp else "pve"
+        for server in self.config_cache["servers"]:
+            if server["id"] == server_id:
+                if channel_id not in server["channel"][channel_type]:
+                    server["channel"][channel_type].append(channel_id)
+                self.save_config()
+                return
+
+    def delete_channel(self, server_id, channel_id, is_pvp=True):
+        """Löscht einen Channel aus einem bestimmten Server."""
+        channel_type = "pvp" if is_pvp else "pve"
+        for server in self.config_cache["servers"]:
+            if server["id"] == server_id:
+                if channel_id in server["channel"][channel_type]:
+                    server["channel"][channel_type].remove(channel_id)
+                self.save_config()
+                return
+
+    def add_event(self, event_id, name, reward, weekly):
+        """Fügt ein Event zur Konfiguration hinzu."""
+        event = {"id": event_id, "name": name, "reward": reward, "weekly": weekly}
+        self.config_cache["events"].append(event)
+        self.save_config()
+
+    def delete_event(self, event_id):
+        """Löscht ein Event aus der Konfiguration."""
+        self.config_cache["events"] = [event for event in self.config_cache["events"] if event["id"] != event_id]
+        self.save_config()
+
+    def get_event_by_id(self, event_id):
+        """Gibt das Event mit der angegebenen ID zurück oder None, falls nicht gefunden."""
+        return next((event for event in self.config_cache.get("events", []) if event.get("id") == event_id), None)
 
 
 # Beispiel-Nutzung
 if __name__ == "__main__":
     config = ConfigManager()
-    config.set("roles", {"manager": 1307003061369045032, "member": 638795102361354260})
-    print(config.get("roles"))  # Gibt die Rollen aus
-    config.delete("roles")
-    print(config.get("roles", "Nicht gefunden"))  # Gibt "Nicht gefunden" aus
-    config.set("roles", {"manager": 1307003061369045032, "member": 638795102361354260})
-    event = next(
-        (event for event in config.config_cache.get("events", []) if event.get("id") == 2),
-        None)
-    print(event)
-    print(event.get("name"))
-    print(event.get("reward"))
-    print(event.get("weekly"))
+    config.add_server("Polaris-Main", 395072012181045260)
+    config.add_channel(395072012181045260, 1289970145002913802, is_pvp=True)
+    print(config.get_event_by_id(2))
