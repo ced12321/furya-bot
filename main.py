@@ -190,7 +190,8 @@ async def get_member_of_channel(event_type):
             if not channel or not isinstance(channel, discord.VoiceChannel):
                 logger.error(
                     f"Channel: {channel_id} in Server: {server_obj.get("id")} nicht gefunden oder Channel ist kein Voice Channel!")
-            participants.extend([member.id for member in channel.members])
+            participants = list(set(participants).union([member.id for member in channel.members]))
+            #participants.extend([member.id for member in channel.members])
     return participants
 
 
