@@ -254,9 +254,9 @@ async def _send_management_msg(ctx):
 
 
 async def log_members(ctx, members):
-    msg = f"Folgende {len(members)} Member haben DKP erhalten: {[bot.get_user(member).mention for member in members]} | User IDs:{members}"
+    msg = f"Folgende {len(members)} Member haben DKP erhalten: {[bot.get_user(member).mention for member in members]}"
     await ctx.followup.send(msg)
-    logger.warning(msg)
+    logger.warning(msg + f" | User IDs:{members}")
 
 
 bot.run(get_token())
