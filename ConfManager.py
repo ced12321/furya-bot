@@ -63,7 +63,7 @@ class ConfigManager:
     def set_postfix(self, server_id: int, postfix: str):
         for server in self.config_cache["server"]:
             if server["id"] == server_id:
-                server["name_prefix"] = postfix
+                server["name_postfix"] = postfix
                 self.save_config()
                 return
 
