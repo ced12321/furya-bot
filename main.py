@@ -131,9 +131,12 @@ async def get_dkp_conf(ctx):
         pve_channel_formatted = [f"<#{str(channel)}>" for channel in server.get("channel").get("pve")]
         pvp_channel_formatted = [f"<#{str(channel)}>" for channel in server.get("channel").get("pvp")]
         embed.add_field(name=f"Server: {server.get('name')}",
-                        value=f"Channel PVE:\n{pve_channel_formatted}\nChannel PVP\n{pvp_channel_formatted}",
+                        value=f"Channel PVE:\n{pve_channel_formatted}\n" +
+                              f"Channel PVP\n{pvp_channel_formatted}\n" +
+                              f"Prefix: {server.get("name_prefix")}\n" +
+                              f"Postfix: {server.get('name_postfix')}\n",
                         inline=False)
-    embed.set_footer(text="Alle Angaben wie immer ohne Gewähr",
+    embed.set_footer(text="Alle Angaben wie immer ohne Gewähr 🔫",
                      icon_url="https://slate.dan.onl/slate.png")
 
     await ctx.respond(embed=embed)
@@ -168,6 +171,27 @@ async def remove_channel(ctx, server, channel_id):
     await ctx.respond(f"Channel <#{channel_id}> wurde entfernt!")
 
 
+@bot.command(name="prefix")
+@has_role(conf_manager.get("roles").get("manager", 1307003061369045032))
+async def remove_channel(ctx, server, prefix):
+    conf_manager.set_prefix(int(server), prefix)
+    if prefix == "":
+        await ctx.respond(f"Prefix wurde entfernt!")
+    else:
+        await ctx.respond(f"Prefix wurde auf {prefix} geändert!")
+
+
+@bot.command(name="postfix")
+@has_role(conf_manager.get("roles").get("manager", 1307003061369045032))
+async def remove_channel(ctx, server, postfix):
+    conf_manager.set_postfix(int(server), postfix)
+    if postfix == "":
+        await ctx.respond(f"Postfix wurde entfernt!")
+    else:
+        await ctx.respond(f"Postfix wurde auf {postfix} geändert!")
+
+
+
 async def _add_dkp(user_ids, amount, weekly: bool):
     dkp_manager.import_data_if_empty()
     for user_id in user_ids:
@@ -184,6 +208,8 @@ async def _decrease_dkp(user_id, dkp):
 async def get_member_of_channel(event_type):
     participants = []
     for server_obj in conf_manager.config_cache.get("server"):
+        prefix = server_obj.get("name_prefix")
+        postfix = server_obj.get("name_postfix")
         for channel_id in server_obj.get("channel").get(event_type.lower()):
             server = bot.get_guild(server_obj.get("id"))
             if not server or not isinstance(server, discord.Guild):
@@ -192,8 +218,10 @@ async def get_member_of_channel(event_type):
             if not channel or not isinstance(channel, discord.VoiceChannel):
                 logger.error(
                     f"Channel: {channel_id} in Server: {server_obj.get("id")} nicht gefunden oder Channel ist kein Voice Channel!")
-            participants = list(set(participants).union([member.id for member in channel.members]))
-            #participants.extend([member.id for member in channel.members])
+            participants = list(set(participants).union([member.id for member in channel.members if
+                                                         member.display_name.startswith(
+                                                             prefix) and member.display_name.endswith(postfix)]))
+            # participants.extend([member.id for member in channel.members])
     return participants
 
 

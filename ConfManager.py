@@ -7,12 +7,12 @@ class ConfigManager:
         self.config_file = config_file
         self.config_cache = {
             "roles": {},
-            "name_prefix": "",
-            "name_postfix": "",
             "events": [],
             "server": {
                 "name": "",
                 "id": 0,
+                "name_prefix": "",
+                "name_postfix": "",
                 "channel": {
                     "pvp": [],
                     "pve": []
@@ -44,7 +44,8 @@ class ConfigManager:
 
     def add_server(self, name, server_id):
         """Fügt einen Server hinzu."""
-        self.config_cache["server"].append({"name": name, "id": server_id, "channel": {"pvp": [], "pve": []}})
+        self.config_cache["server"].append(
+            {"name": name, "id": server_id, "channel": {"pvp": [], "pve": []}, "name_prefix": "", "name_postfix": ""})
         self.save_config()
 
     def delete_server(self, server_id):
@@ -52,6 +53,19 @@ class ConfigManager:
         self.config_cache["server"] = [server for server in self.config_cache["server"] if
                                        server["id"] != server_id]
         self.save_config()
+
+    def set_prefix(self, server_id: int, prefix: str):
+        for server in self.config_cache["server"]:
+            if server["id"] == server_id:
+                server["name_prefix"] = prefix
+                self.save_config()
+                return
+    def set_postfix(self, server_id: int, postfix: str):
+        for server in self.config_cache["server"]:
+            if server["id"] == server_id:
+                server["name_prefix"] = postfix
+                self.save_config()
+                return
 
     def add_channel(self, server_id, channel_id, is_pvp=True):
         """Fügt einen Channel zu einem bestimmten Server hinzu."""
