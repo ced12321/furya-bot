@@ -112,8 +112,7 @@ async def event_dkp(ctx, server: int, channel, dkp: int, weekly: bool):
 
     member = _channel.members
     await _add_dkp(member, dkp, weekly=weekly)
-    channel_mention = f"<#{channel}>"
-    await ctx.respond(f"Mitglieder des Kanals {channel_mention} haben {dkp} {"weekly" if weekly else ""} DKP erhalten")
+    await ctx.respond(f"Mitglieder des Kanals <#{channel}> haben {dkp} {"weekly" if weekly else ""} DKP erhalten")
     await log_members(ctx, member)
 
 
