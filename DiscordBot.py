@@ -8,24 +8,26 @@ import logging
 from DkpManager import DkpManager
 from ConfManager import ConfigManager
 
-logger = logging.getLogger("FuryaBot")
-logging.basicConfig(format='%(asctime)s %(message)s', level=logging.WARNING, stream=sys.stdout)
-
 
 def get_token():
     token = open("token", "r")
     return token.read().strip()
 
 
-# Initialisierung des Bots
-intents = discord.Intents.default()
-intents.guilds = True
-intents.voice_states = True
-intents.message_content = True
-intents.members = True  # Erforderlich, um Mitglieder im Voice-Channel zu sehen
-bot = discord.Bot(intents=intents)
-dkp_manager = DkpManager()
-conf_manager = ConfigManager()
+if __name__ == "__main__":
+    logger = logging.getLogger("dkp_bot")
+    logging.basicConfig(format='%(asctime)s %(message)s', level=logging.WARNING, stream=sys.stdout)
+
+    intents = discord.Intents.default()
+    intents.guilds = True
+    intents.voice_states = True
+    intents.message_content = True
+    intents.members = True
+    bot = discord.Bot(intents=intents)
+    dkp_manager = DkpManager()
+    conf_manager = ConfigManager()
+
+    bot.run(get_token())
 
 
 # Bot-Event beim Start
@@ -190,7 +192,6 @@ async def set_postfix(ctx, server, postfix: str = ""):
         await ctx.respond(f"Postfix wurde auf {postfix} geändert!")
 
 
-
 async def _add_dkp(user_ids, amount, weekly: bool):
     dkp_manager.import_data_if_empty()
     for user_id in user_ids:
@@ -284,6 +285,3 @@ async def log_members(ctx, members):
     msg = f"Folgende {len(members)} Member haben DKP erhalten: {[bot.get_user(member).mention for member in members]}"
     await ctx.followup.send(msg)
     logger.warning(msg + f" | User IDs:{members}")
-
-
-bot.run(get_token())
