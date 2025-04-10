@@ -172,7 +172,7 @@ async def remove_channel(ctx, server, channel_id):
 
 @bot.command(name="prefix")
 @has_role(conf_manager.get("roles").get("manager", 1307003061369045032))
-async def remove_channel(ctx, server, prefix):
+async def set_prefix(ctx, server, prefix: str = ""):
     conf_manager.set_prefix(int(server), prefix)
     if prefix == "":
         await ctx.respond(f"Prefix wurde entfernt!")
@@ -182,7 +182,7 @@ async def remove_channel(ctx, server, prefix):
 
 @bot.command(name="postfix")
 @has_role(conf_manager.get("roles").get("manager", 1307003061369045032))
-async def remove_channel(ctx, server, postfix):
+async def set_postfix(ctx, server, postfix: str = ""):
     conf_manager.set_postfix(int(server), postfix)
     if postfix == "":
         await ctx.respond(f"Postfix wurde entfernt!")
