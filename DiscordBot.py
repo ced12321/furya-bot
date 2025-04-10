@@ -16,7 +16,7 @@ def get_token():
 
 if __name__ == "__main__":
     logger = logging.getLogger("dkp_bot")
-    logging.basicConfig(format='%(asctime)s %(message)s', level=logging.WARNING, stream=sys.stdout)
+    logging.basicConfig(format='%(asctime)s %(message)s', level=logging.WARNING, filename='bot.log')
 
     intents = discord.Intents.default()
     intents.guilds = True
